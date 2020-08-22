@@ -2,7 +2,7 @@
 $script:AudioFormats = @('wav', 'aif', 'raw_big', 'raw_little', 'mp3', 'aac', 'flac', 'alac', 'vorbis', 'wavpack', 'opus');
 
 function Convert-Audio {
-  <#
+<#
 .SEE
   https://tmkk.undo.jp/xld/index_e.html
 
@@ -61,13 +61,23 @@ function Convert-Audio {
     [String]$To,
 
     [parameter()]
-    [String]$CopyFiles = '*',
+    [String[]]$CopyFiles = @('jpg', 'jpeg', 'txt'),
 
-    [Switch]$Skip,
-    [Switch]$WhatIf
+    [Switch]$Skip
   )
 
   if ( !(Test-Path -Path $Destination -PathType Container) ) {
     New-Item -Path $Destination -ItemType 'Directory' -WhatIf:$WhatIf;
   }
+
+  [System.Collections.Hashtable]$passThru = @{
+    'XATCH.CONVERT.CONVERTER' = $XatchXld.Converter;
+  }
+
+  if ($PSBoundParameters.ContainsKey('WhatIf') -and $PSBoundParameters['WhatIf'].ToBool()) {
+    $passThru['WHAT-IF'] = $true;
+  }
+
+  invoke-ConversionBatch -Source $Source -Destination $Destination `
+    -From $From -To $To -CopyFiles $CopyFiles -PassThru $passThru -Skip:$Skip;
 }
