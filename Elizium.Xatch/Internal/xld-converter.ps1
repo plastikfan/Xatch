@@ -17,4 +17,18 @@ $global:XatchXld = @{
 
     Invoke-Expression -Command $command;
   }
+
+  DummyConverter = [scriptblock] {
+    param(
+      [Parameter(Mandatory)]
+      [string]$sourceFullName,
+
+      [Parameter(Mandatory)]
+      [string]$destinationAudioFilename,
+
+      [Parameter(Mandatory)]
+      [string]$toFormat
+    )
+    0;
+  }
 }

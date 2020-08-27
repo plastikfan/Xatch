@@ -2,7 +2,7 @@
 $script:AudioFormats = @('wav', 'aif', 'raw_big', 'raw_little', 'mp3', 'aac', 'flac', 'alac', 'vorbis', 'wavpack', 'opus');
 
 function Convert-Audio {
-<#
+  <#
 .SEE
   https://tmkk.undo.jp/xld/index_e.html
 
@@ -67,17 +67,35 @@ function Convert-Audio {
   )
 
   if ( !(Test-Path -Path $Destination -PathType Container) ) {
-    New-Item -Path $Destination -ItemType 'Directory' -WhatIf:$WhatIf;
+    $null = New-Item -Path $Destination -ItemType 'Directory';
   }
 
+  [System.Collections.Hashtable]$generalTheme = Get-KrayolaTheme;
   [System.Collections.Hashtable]$passThru = @{
-    'XATCH.CONVERT.CONVERTER' = $XatchXld.Converter;
-  }
+    # This has to be a function call get-PlatformId
+    #
+    'XATCH.CONVERT.CONVERTER' = (([environment]::OSVersion.Platform).ToString() -eq 'Win32NT') `
+      ? $XatchXld.DummyConverter : $XatchXld.Converter;
+    'LOOPZ.KRAYOLA-THEME'     = $generalTheme;
+  };
+
+  [System.Collections.Hashtable]$innerTheme = $generalTheme.Clone();
+  $innerTheme['FORMAT'] = '"<%KEY%>" -> "<%VALUE%>"';
+  $innerTheme['MESSAGE-SUFFIX'] = ' | ';
+  $innerTheme['MESSAGE-COLOURS'] = @('Green');
+  $innerTheme['META-COLOURS'] = @('DarkMagenta');
+  $innerTheme['VALUE-COLOURS'] = @('Blue');
+  $innerTheme['AFFIRM-COLOURS'] = @('Red');
+  $innerTheme['OPEN'] = '(';
+  $innerTheme['CLOSE'] = ')';
+
+  $passThru['XATCH.INNER-KRAYOLA-THEME'] = $innerTheme;
 
   if ($PSBoundParameters.ContainsKey('WhatIf') -and $PSBoundParameters['WhatIf'].ToBool()) {
     $passThru['WHAT-IF'] = $true;
+    $passThru['XATCH.CONVERT.CONVERTER'] = $XatchXld.DummyConverter;
   }
 
-  invoke-ConversionBatch -Source $Source -Destination $Destination `
+  $null = invoke-ConversionBatch -Source $Source -Destination $Destination `
     -From $From -To $To -CopyFiles $CopyFiles -PassThru $passThru -Skip:$Skip;
 }
