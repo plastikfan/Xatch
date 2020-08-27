@@ -24,8 +24,14 @@ $script:TestHelpers = "$PSScriptRoot/Tests/Helpers"
 if (Test-Path -Path $script:TestHelpers) {
   $helpers = Get-ChildItem -Path $script:TestHelpers -Recurse -File -Filter '*.ps1';
   $helpers | ForEach-Object { Write-Verbose "sourcing helper $_"; . $_; }
-} else {
+}
+else {
   Write-Warning "Could not find helpers: $script:TestHelpers"
+}
+
+function Get-FunctionExportList {
+  (Get-ChildItem -Path $script:PublicFolder | Where-Object { $_.Name -like '*-*' } |
+    Select-Object -ExpandProperty BaseName)
 }
 
 task Clean {
@@ -81,11 +87,19 @@ task Compile @compileParams {
     [string[]]$exportVariables = $sourceDefinition['VariablesToExport'];
     Write-Verbose "Found VariablesToExport: $exportVariables in source Psd file: $script:SourcePsdPath";
 
-    [string]$variablesArgument = $($exportVariables -join ",") + [System.Environment]::NewLine;
-    [string]$contentToAdd = "Export-ModuleMember -Variable $variablesArgument";
-    Write-Verbose "Adding content: $contentToAdd";
+    if (-not([string]::IsNullOrEmpty($exportVariables))) {
+      [string]$variablesArgument = $($exportVariables -join ", ") + [System.Environment]::NewLine;
+      [string]$contentToAdd = "Export-ModuleMember -Variable $variablesArgument";
+      Write-Verbose "Adding content: $contentToAdd";
 
-    Add-Content $script:PsmPath "Export-ModuleMember -Variable $variablesArgument";
+      Add-Content $script:PsmPath "Export-ModuleMember -Variable $variablesArgument";
+    }
+  }
+
+  $publicFunctions = Get-FunctionExportList;
+
+  if ($publicFunctions.Length -gt 0) {
+    Add-Content $script:PsmPath "Export-ModuleMember -Function $($publicFunctions -join ', ')";
   }
 }
 
@@ -103,20 +117,23 @@ task CopyPSD {
 }
 
 task UpdatePublicFunctionsToExport -if (Test-Path -Path $script:PublicFolder) {
-  $publicFunctions = (Get-ChildItem -Path $script:PublicFolder |
-    Select-Object -ExpandProperty BaseName) -join "', '"
-
-  $publicFunctions = "FunctionsToExport = @('{0}')" -f $publicFunctions
-
-  # Make sure in your source psd1 file, FunctionsToExport  is set to ''.
-  # PowerShell has a problem with trying to replace (), so @() does not
-  # work without jumping through hoops.
+  # This task only updates the psd file. The compile task updates the psm file
   #
-  (Get-Content -Path $script:PsdPath) -replace "FunctionsToExport = ''", $publicFunctions |
-  Set-Content -Path $script:PsdPath
+  $publicFunctions = (Get-FunctionExportList) -join "', '"
+
+  if (-not([string]::IsNullOrEmpty($publicFunctions))) {
+    Write-Verbose "Functions to export: $publicFunctions"
+
+    $publicFunctions = "FunctionsToExport = @('{0}')" -f $publicFunctions
+
+    # Make sure in your source psd1 file, FunctionsToExport  is set to ''.
+    # PowerShell has a problem with trying to replace (), so @() does not
+    # work without jumping through hoops.
+    #
+    (Get-Content -Path $script:PsdPath) -replace "FunctionsToExport = ''", $publicFunctions |
+    Set-Content -Path $script:PsdPath
+  }
 }
-
-
 
 task ImportCompiledModule -if (Test-Path -Path $script:PsmPath) {
   Get-Module -Name $script:ModuleName | Remove-Module -Force
