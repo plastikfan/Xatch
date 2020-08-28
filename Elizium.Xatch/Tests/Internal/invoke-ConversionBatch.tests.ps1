@@ -33,7 +33,7 @@ Describe 'invoke-ConversionBatch' {
   }
 
   Context 'given: blah' {
-    It 'should: ' -Tag 'Current' {
+    It 'should: ' {
       [System.Collections.Hashtable]$PassThru = @{
         'XATCH.CONVERT.CONVERTER' = $converter;
       }
