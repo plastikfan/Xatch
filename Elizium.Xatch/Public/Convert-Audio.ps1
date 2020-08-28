@@ -63,7 +63,10 @@ function Convert-Audio {
     [parameter()]
     [String[]]$CopyFiles = @('jpg', 'jpeg', 'txt'),
 
-    [Switch]$Skip
+    [Switch]$Skip,
+
+    [parameter()]
+    [scriptblock]$Converter = $(get-Converter)
   )
 
   if ( !(Test-Path -Path $Destination -PathType Container) ) {
@@ -72,10 +75,6 @@ function Convert-Audio {
 
   [System.Collections.Hashtable]$generalTheme = Get-KrayolaTheme;
   [System.Collections.Hashtable]$passThru = @{
-    # This has to be a function call get-PlatformId
-    #
-    'XATCH.CONVERT.CONVERTER' = (([environment]::OSVersion.Platform).ToString() -eq 'Win32NT') `
-      ? $XatchXld.DummyConverter : $XatchXld.Converter;
     'LOOPZ.KRAYOLA-THEME'     = $generalTheme;
   };
 
@@ -93,8 +92,9 @@ function Convert-Audio {
 
   if ($PSBoundParameters.ContainsKey('WhatIf') -and $PSBoundParameters['WhatIf'].ToBool()) {
     $passThru['WHAT-IF'] = $true;
-    $passThru['XATCH.CONVERT.CONVERTER'] = $XatchXld.DummyConverter;
   }
+
+  $passThru['XATCH.CONVERT.CONVERTER'] = $Converter;
 
   $null = invoke-ConversionBatch -Source $Source -Destination $Destination `
     -From $From -To $To -CopyFiles $CopyFiles -PassThru $passThru -Skip:$Skip;
