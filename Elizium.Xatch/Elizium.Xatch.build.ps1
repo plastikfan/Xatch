@@ -2,7 +2,7 @@
 task . Clean, Build, Tests, Stats
 task Tests ImportCompiledModule, Pester
 task CreateManifest CopyPSD, UpdatePublicFunctionsToExport
-task Build Compile, CreateManifest, Ana
+task Build Compile, CreateManifest, Verify
 task Stats RemoveStats, WriteStats
 task Ana Analyse
 task Fix ApplyFix
@@ -178,6 +178,10 @@ task Analyse {
 
 task ApplyFix {
   Invoke-ScriptAnalyzer -Path .\ -Recurse -Fix
+}
+
+task Verify {
+  Test-ModuleManifest $script:PsdPath;
 }
 
 # Before this can be run, this must be run first
