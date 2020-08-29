@@ -11,7 +11,10 @@ function get-IsInstalled {
   try {
     $command = Get-Command -Name $Name -ShowCommandInfo -ErrorAction SilentlyContinue;
 
-    if ($command -and ($command.CommandType -ne 'Application')) {
+    if (-not($?)) {
+      $result = $false;
+    }
+    elseif ($command -and ($command.CommandType -ne 'Application')) {
       $result = $false;
     }
   }

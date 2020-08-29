@@ -59,34 +59,59 @@ function invoke-ConversionBatch {
     [string]$destinationAudioFullname = Join-Path -Path $destinationInfo.FullName `
       -ChildPath $destinationAudioFilename;
 
-    [boolean]$doConversion = $true;
-    $passThru['LOOPZ.WH-FOREACH-DECORATOR.MESSAGE'] = $passThru.ContainsKey('WHAT-IF') ? `
-      '   [❓] Converted file' : '   [✔️] Converted file';
+    [boolean]$skipped = $false;
+    [boolean]$overwrite = $false;
+    [string]$indicator = '➖';
+    [string]$state = 'Conversion Ok';
+    [boolean]$whatIf = $passThru.ContainsKey('WHAT-IF') -and $passThru['WHAT-IF'];
 
     if (Test-Path -Path $destinationAudioFilename) {
       if ($skipExisting) {
-        $passThru['LOOPZ.WH-FOREACH-DECORATOR.MESSAGE'] = '   [❌] Skipped file';
-        $doConversion = $false;
+        $skipped = $true;
       }
       else {
-        Write-Warning ("!!! Overwriting existing file: '" + $destinationAudioFilename + "'");
-        $passThru['LOOPZ.WH-FOREACH-DECORATOR.MESSAGE'] = '   [♻️] Overwrite file';
+        $overwrite = $true;
       }
     }
 
     [string[][]]$properties = @();
     $product = $null;
-  
-    if ($doConversion) {
-      $converter = $passThru['XATCH.CONVERT.CONVERTER'];      
-      $converter.Invoke($sourceFullName, $destinationAudioFullname, $toFormat);
+
+    if (-not($skipped)) {
+      [scriptblock]$converter = $passThru['XATCH.CONVERT.CONVERTER'];
+      $invokeResult = $converter.Invoke($sourceFullName, $destinationAudioFullname, $toFormat);
+
+      if ($invokeResult[0] -eq 0) {
+        if ($passThru.ContainsKey('XATCH.CONVERTER.DUMMY')) {
+          $indicator = '🔷';
+          $state = 'Dummy Ok';
+        } else {
+          $indicator = $whatIf ? '💠' : ($overwrite ? '♻️' : '✔️');
+          if ($whatIf) {
+            $state = 'WhatIf';
+          }
+          elseif ($overwrite) {
+            $state = 'Overwrite Ok';
+          }
+        }
+      }
+      else {
+        $indicator = '❌';
+        $state = 'Conversion Failed';
+      }
     }
+    else {
+      $indicator = '🔆';
+      $state = 'Conversion Skipped';
+    }
+
+    $passThru['LOOPZ.WH-FOREACH-DECORATOR.MESSAGE'] = "   [{0}] {1}" -f $indicator, $state;
 
     if (Test-Path -Path $destinationAudioFilename) {
       [System.IO.FileInfo]$destinationInfo = Get-Item -Path $destinationAudioFilename;
-      # doConversion being used as an affirmation
+      # -not($skipped) being used as an affirmation
       #
-      $properties += , @('Size', $destinationInfo.Length, $doConversion);
+      $properties += , @('Size', $destinationInfo.Length, -not($skipped));
       $product = $destinationInfo;
     }
     else {
@@ -94,7 +119,7 @@ function invoke-ConversionBatch {
       $product = $destinationAudioFilename;
     }
 
-    [PSCustomObject]$result = [PSCustomObject]@{ Product = $product; Trigger = $doConversion };
+    [PSCustomObject]$result = [PSCustomObject]@{ Product = $product; Trigger = -not($skipped) };
     if ($properties.Length -gt 0) {
       # Since result is a PSCustomObject as opposed to hash-table, we can't simply assign
       # a value to a non-existing property; need to use Add-Member instead.
@@ -133,7 +158,7 @@ function invoke-ConversionBatch {
     $foreachAudioFilePassThru['LOOPZ.WH-FOREACH-DECORATOR.GET-RESULT'] = $getResult;
     $foreachAudioFilePassThru['LOOPZ.WH-FOREACH-DECORATOR.PRODUCT-LABEL'] = 'To';
 
-    $foreachAudioFilePassThru['LOOPZ.HEADER-BLOCK.CRUMB'] = '[🔆] ';
+    $foreachAudioFilePassThru['LOOPZ.HEADER-BLOCK.CRUMB'] = '[🎯] ';
     $foreachAudioFilePassThru['LOOPZ.HEADER-BLOCK.LINE'] = $LoopzUI.SmallUnderscoreLine;
     $destinationBranch = $foreachAudioFilePassThru['LOOPZ.MIRROR.BRANCH-DESTINATION'];
     [string]$directorySeparator = [System.IO.Path]::DirectorySeparatorChar;
@@ -145,8 +170,7 @@ function invoke-ConversionBatch {
     $foreachAudioFilePassThru.Remove('LOOPZ.FOREACH.INDEX');
     $foreachAudioFilePassThru.Remove('LOOPZ.SUMMARY-BLOCK.WIDE-ITEMS');
 
-    [System.Collections.Hashtable]$innerTheme = $foreachAudioFilePassThru[
-      'XATCH.INNER-KRAYOLA-THEME'];
+    [System.Collections.Hashtable]$innerTheme = $foreachAudioFilePassThru['XATCH.INNER-KRAYOLA-THEME'];
 
     if ($innerTheme) {
       $foreachAudioFilePassThru['LOOPZ.KRAYOLA-THEME'] = $innerTheme;

@@ -24,6 +24,7 @@ Describe 'invoke-ConversionBatch' {
         [Parameter(Mandatory)]
         [string]$toFormat
       )
+      0;
       # [string]$command = ("xld -f '{0}' -o '{1}' '{2}'" `
       #     -f $toFormat, $destinationAudioFilename, $sourceFullName);
       # Write-Host "COMMAND: >>> $command";
@@ -36,6 +37,7 @@ Describe 'invoke-ConversionBatch' {
     It 'should: ' {
       [System.Collections.Hashtable]$PassThru = @{
         'XATCH.CONVERT.CONVERTER' = $converter;
+        # 'WHAT-IF' = $true;
       }
 
       [System.Collections.Hashtable]$generalTheme = Get-KrayolaTheme;
@@ -55,7 +57,7 @@ Describe 'invoke-ConversionBatch' {
       $PassThru['XATCH.INNER-KRAYOLA-THEME'] = $innerTheme;
 
       invoke-ConversionBatch -Source $sourcePath -Destination $destinationPath `
-        -From 'flac' -To 'wav' -PassThru $PassThru -WhatIf;
+        -From 'flac' -To 'wav' -PassThru $PassThru;
     }
   }
 }

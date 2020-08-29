@@ -66,10 +66,23 @@ function Convert-Audio {
     [Switch]$Skip,
 
     [parameter()]
-    [scriptblock]$Converter = $(get-Converter)
+    [scriptblock]$Converter
   )
 
   if ( !(Test-Path -Path $Destination -PathType Container) ) {
+    if ($PSBoundParameters.ContainsKey('WhatIf') -and ($PSBoundParameters['WhatIf'])) {
+      # WhatIf setting is inherited from the top command. If it is enabled on Convert-Audio
+      # then invoking child commands like New-Item below will also run with it enabled.
+      # However, the WhatIf inheritance does not apply to commands defined in another
+      # module, which is why it's appropriate to pass in WHAT-IF in the PassThru to relay
+      # this into commands inside Loopz.
+      #
+      Write-Host "Destination Path: '$Destination'"
+      Write-Host "Cannot continue with WhatIf enabled, if Destination path doesn't already exist" -ForegroundColor 'Yellow';
+      Write-Host "Either, rerun without WhatIf or create the destination then re-run with WhatIf" -ForegroundColor 'Yellow';
+
+      return;
+    }
     $null = New-Item -Path $Destination -ItemType 'Directory';
   }
 
@@ -92,6 +105,10 @@ function Convert-Audio {
 
   if ($PSBoundParameters.ContainsKey('WhatIf') -and $PSBoundParameters['WhatIf'].ToBool()) {
     $passThru['WHAT-IF'] = $true;
+  }
+
+  if (-not($Converter)) {
+    $Converter = get-Converter -PassThru $passThru
   }
 
   $passThru['XATCH.CONVERT.CONVERTER'] = $Converter;
