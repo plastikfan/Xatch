@@ -8,11 +8,17 @@ function get-Converter {
   [scriptblock]$block = $null;
   [boolean]$dummy = $false;
 
-  $environmentConverter = [System.Environment]::GetEnvironmentVariable('XATCH.CONVERTER');
+  $environmentConverter = get-EnvironmentVariable -Variable 'XATCH.CONVERTER';
   if ($environmentConverter -and ($environmentConverter -is [scriptblock])) {
     $block = $environmentConverter;
+    $PassThru['XATCH.CONVERTER.ENV'] = $true;
   } else {
-    $block = (get-IsInstalled -Name 'xld') ? $XatchXld.Converter : $XatchXld.DummyConverter;
+    if (get-IsInstalled -Name 'xld') {
+      $block = $XatchXld.Converter;
+    } else {
+      $block = $XatchXld.DummyConverter;
+      $dummy = $true;
+    }
   }
 
   if ($passThru.ContainsKey('WHAT-IF')) {

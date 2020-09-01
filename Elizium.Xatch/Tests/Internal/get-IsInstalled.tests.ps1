@@ -13,7 +13,7 @@ Describe 'get-IsInstalled' -Skip {
     }
   
     Context 'given: not installed' {
-      It 'should: return false' -Tag 'Current' {
+      It 'should: return false' {
         Mock Get-Command -Verifiable { # These mocks don't work; internal function?
           throw $message;
         }

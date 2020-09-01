@@ -78,24 +78,40 @@ function invoke-ConversionBatch {
     $product = $null;
 
     if (-not($skipped)) {
-      [scriptblock]$converter = $passThru['XATCH.CONVERT.CONVERTER'];
-      $invokeResult = $converter.Invoke($sourceFullName, $destinationAudioFullname, $toFormat);
+      try {
+        [scriptblock]$converter = $passThru['XATCH.CONVERT.CONVERTER'];
+        $invokeResult = $converter.Invoke($sourceFullName, $destinationAudioFullname, $toFormat);
 
-      if ($invokeResult[0] -eq 0) {
-        if ($passThru.ContainsKey('XATCH.CONVERTER.DUMMY')) {
-          $indicator = '🔷';
-          $state = 'Dummy Ok';
-        } else {
-          $indicator = $whatIf ? '💠' : ($overwrite ? '♻️' : '✔️');
-          if ($whatIf) {
-            $state = 'WhatIf';
+        if ($invokeResult[0] -eq 0) {
+          if ($passThru.ContainsKey('XATCH.CONVERTER.DUMMY')) {
+            $indicator = '🔶';
+            $state = 'Dummy Ok';
           }
-          elseif ($overwrite) {
-            $state = 'Overwrite Ok';
+          elseif ($passThru.ContainsKey('XATCH.CONVERTER.ENV')) {
+            $state = 'ENV Conversion Ok'
+            $indicator = $whatIf ? '💠' : ($overwrite ? '💎' : '☑️');
+            if ($whatIf) {
+              $state = 'ENV WhatIf';
+            }
+            elseif ($overwrite) {
+              $state = 'ENV Overwrite Ok';
+            }
+          }
+          else {
+            $indicator = $whatIf ? '✳️' : ($overwrite ? '♻️' : '✔️');
+            if ($whatIf) {
+              $state = 'WhatIf';
+            }
+            elseif ($overwrite) {
+              $state = 'Overwrite Ok';
+            }
           }
         }
-      }
-      else {
+        else {
+          $indicator = '❌';
+          $state = 'Conversion Failed';
+        }
+      } catch {
         $indicator = '❌';
         $state = 'Conversion Failed';
       }
