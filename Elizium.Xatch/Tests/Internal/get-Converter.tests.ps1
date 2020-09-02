@@ -125,18 +125,6 @@ Describe 'get-Converter' {
           }
         } # should: return environment converter
       } # and: XATCH.CONVERTER environment variable set
-
-      Context 'and: XATCH.CONVERTER environment variable not set' {
-        It 'should: return dummy converter' {
-          [System.Collections.Hashtable]$passThru = @{}
-          [scriptblock]$converter = get-Converter -PassThru $passThru;
-
-          $passThru['XATCH.CONVERTER.DUMMY'] | Should -BeNull;
-          if (-not(Get-Command -Name 'xld' -ErrorAction 'SilentlyContinue')) {
-            $converter.Invoke('blue-rose.flac', 'blue-rose.wav', 'wav') | Should -Be 0;
-          }
-        }
-      } # and: XATCH.CONVERTER environment variable not set
     } # and WhatIf not set
 
     Context 'and: WhatIf set' {
