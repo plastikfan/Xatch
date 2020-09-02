@@ -82,14 +82,16 @@ function invoke-ConversionBatch {
         [scriptblock]$converter = $passThru['XATCH.CONVERT.CONVERTER'];
         $invokeResult = $converter.Invoke($sourceFullName, $destinationAudioFullname, $toFormat);
 
+        # https://emojicheatsheet.com/
+        #
         if ($invokeResult[0] -eq 0) {
           if ($passThru.ContainsKey('XATCH.CONVERTER.DUMMY')) {
-            $indicator = '🔶';
+            $indicator = $whatIf ? '🙀' : ($overwrite ? '😼' : '😺');
             $state = 'Dummy Ok';
           }
           elseif ($passThru.ContainsKey('XATCH.CONVERTER.ENV')) {
             $state = 'ENV Conversion Ok'
-            $indicator = $whatIf ? '💠' : ($overwrite ? '💎' : '☑️');
+            $indicator = $whatIf ? '🤔' : ($overwrite ? '🥶' : '😎');
             if ($whatIf) {
               $state = 'ENV WhatIf';
             }
@@ -98,7 +100,7 @@ function invoke-ConversionBatch {
             }
           }
           else {
-            $indicator = $whatIf ? '✳️' : ($overwrite ? '♻️' : '✔️');
+            $indicator = $whatIf ? '💗' : ($overwrite ? '💔' : '💖');
             if ($whatIf) {
               $state = 'WhatIf';
             }
@@ -108,11 +110,11 @@ function invoke-ConversionBatch {
           }
         }
         else {
-          $indicator = '❌';
+          $indicator = '👿';
           $state = 'Conversion Failed';
         }
       } catch {
-        $indicator = '❌';
+        $indicator = '💀';
         $state = 'Conversion Failed';
       }
     }
@@ -131,7 +133,7 @@ function invoke-ConversionBatch {
       $product = $destinationInfo;
     }
     else {
-      $properties += , @('Size', '???');
+      $properties += , @('Size', '0?');
       $product = $destinationAudioFilename;
     }
 
@@ -181,7 +183,7 @@ function invoke-ConversionBatch {
     $foreachAudioFilePassThru['LOOPZ.HEADER-BLOCK.MESSAGE'] = "...$($directorySeparator)$($destinationBranch)";
 
     $foreachAudioFilePassThru['LOOPZ.SUMMARY-BLOCK.LINE'] = $LoopzUI.SmallUnderscoreLine;
-    $foreachAudioFilePassThru['LOOPZ.SUMMARY-BLOCK.MESSAGE'] = "   [🎶] Conversion Summary ($($destinationInfo.Name))";
+    $foreachAudioFilePassThru['LOOPZ.SUMMARY-BLOCK.MESSAGE'] = "   [🌀] Conversion Summary ($($destinationInfo.Name))";
 
     $foreachAudioFilePassThru.Remove('LOOPZ.FOREACH.INDEX');
     $foreachAudioFilePassThru.Remove('LOOPZ.SUMMARY-BLOCK.WIDE-ITEMS');
@@ -221,7 +223,7 @@ function invoke-ConversionBatch {
   $PassThru['LOOPZ.HEADER-BLOCK.MESSAGE'] = "Convert from '$From' to '$To'";
 
   $PassThru['LOOPZ.SUMMARY-BLOCK.LINE'] = $LoopzUI.EqualsLine;
-  $PassThru['LOOPZ.SUMMARY-BLOCK.MESSAGE'] = '[🧿] Directories Summary';
+  $PassThru['LOOPZ.SUMMARY-BLOCK.MESSAGE'] = '[💫] Directories Summary';
   $PassThru['LOOPZ.SUMMARY-BLOCK.WIDE-ITEMS'] = @(
     @('   [📁] Source', $(Convert-Path -Path $Source)),
     @('   [📁] Destination', $(Convert-Path -Path $Destination))
