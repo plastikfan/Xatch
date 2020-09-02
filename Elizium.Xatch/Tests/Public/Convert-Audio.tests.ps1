@@ -1,6 +1,7 @@
 
 Describe 'Convert-Audio' {
   BeforeAll {
+    if ($IsWindows) {
     . .\Internal\edit-SubtractFirst.ps1
     . .\Internal\edit-TruncateExtension.ps1
     . .\Internal\get-Converter.ps1
@@ -9,6 +10,16 @@ Describe 'Convert-Audio' {
     . .\Internal\invoke-ConversionBatch.ps1
     . .\Internal\xld-converter.ps1
     . .\Public\Convert-Audio.ps1
+    } else {
+    . ./Internal/edit-SubtractFirst.ps1
+    . ./Internal/edit-TruncateExtension.ps1
+    . ./Internal/get-Converter.ps1
+    . ./Internal/get-EnvironmentVariable.ps1
+    . ./Internal/get-IsInstalled.ps1
+    . ./Internal/invoke-ConversionBatch.ps1
+    . ./Internal/xld-converter.ps1
+    . ./Public/Convert-Audio.ps1
+    }
 
     [string]$script:sourcePath = './Tests/Data/batch/Audio/MINIMAL/Richie Hawtin';
     [string]$script:destinationPath = 'TestDrive:/TEST/Audio/Richie Hawtin';
@@ -46,16 +57,14 @@ Describe 'Convert-Audio' {
     } # failedConverter
   }
 
-  Context 'given: xld is installed' {
+  Context 'given: xld is installed' -Skip {
     Context 'and WhatIf not set' {
       Context 'and: XATCH.CONVERTER environment variable set' {
         It 'should: return environment converter' {
-          # Mock get-EnvironmentVariable -Verifiable `
-          #   -ParameterFilter { $Variable -eq 'XATCH.CONVERTER' } {
-          #   $testConverter;
-          # }
+          Mock get-EnvironmentVariable -Verifiable  {
+            $testConverter;
+          }
           Mock get-IsInstalled -Verifiable {
-            Write-Host "**** MOCK: get-IsInstalled"
             return $true;
           }
 
@@ -84,43 +93,46 @@ Describe 'Convert-Audio' {
           # ...
         }
       } # and: XATCH.CONVERTER environment variable set
-
-      Context 'and: XATCH.CONVERTER environment variable not set' {
-        It 'should: return dummy converter' {
-          [System.Collections.Hashtable]$passThru = @{
-            'WHAT-IF' = $true;
-          }
-          # ...
-        }
-      } # and: XATCH.CONVERTER environment variable not set
     } # and: WhatIf set
   } # given: xld is installed
 } # Convert-Audio
 
 InModuleScope Elizium.Xatch {
-  BeforeAll {
-    . .\Internal\edit-SubtractFirst.ps1
-    . .\Internal\edit-TruncateExtension.ps1
-    . .\Internal\get-Converter.ps1
-    . .\Internal\get-EnvironmentVariable.ps1
-    . .\Internal\get-IsInstalled.ps1
-    . .\Internal\invoke-ConversionBatch.ps1
-    . .\Internal\xld-converter.ps1
-    . .\Public\Convert-Audio.ps1
-
-    [string]$script:sourcePath = './Tests/Data/batch/Audio/MINIMAL/Richie Hawtin';
-    [string]$script:destinationPath = 'TestDrive:/TEST/Audio/Richie Hawtin';
-
-    if (-not(Test-Path -Path $destinationPath)) {
-      New-Item -ItemType 'Directory' -Path $destinationPath;
-    }
-
-    Mock get-IsInstalled {
-      return $false;
-    }
-  }
-
   Describe 'Convert-Audio' {
+    BeforeAll {
+      if ($IsWindows) {
+        . .\Internal\edit-SubtractFirst.ps1
+        . .\Internal\edit-TruncateExtension.ps1
+        . .\Internal\get-Converter.ps1
+        . .\Internal\get-EnvironmentVariable.ps1
+        . .\Internal\get-IsInstalled.ps1
+        . .\Internal\invoke-ConversionBatch.ps1
+        . .\Internal\xld-converter.ps1
+        . .\Public\Convert-Audio.ps1
+      }
+      else {
+        . ./Internal/edit-SubtractFirst.ps1
+        . ./Internal/edit-TruncateExtension.ps1
+        . ./Internal/get-Converter.ps1
+        . ./Internal/get-EnvironmentVariable.ps1
+        . ./Internal/get-IsInstalled.ps1
+        . ./Internal/invoke-ConversionBatch.ps1
+        . ./Internal/xld-converter.ps1
+        . ./Public/Convert-Audio.ps1
+      }
+
+      [string]$script:sourcePath = './Tests/Data/batch/Audio/MINIMAL/Richie Hawtin';
+      [string]$script:destinationPath = 'TestDrive:/TEST/Audio/Richie Hawtin';
+
+      if (-not(Test-Path -Path $destinationPath)) {
+        New-Item -ItemType 'Directory' -Path $destinationPath;
+      }
+
+      Mock get-IsInstalled {
+        return $false;
+      }
+    } # BeforeAll
+
     Context 'given: xld not installed' {
       # When tests are defined InModuleScope, member variables can't be defined inside BeforeAll/Each as
       # they can be without InModuleScope, so put them in a high level Context block instead.
@@ -171,20 +183,20 @@ InModuleScope Elizium.Xatch {
         } # and: XATCH.CONVERTER environment variable not set
       } # and WhatIf not set
 
-      Context 'and: WhatIf set' {
+      Context 'and: WhatIf set' -Tag 'Current' {
         Context 'and: XATCH.CONVERTER environment variable set' {
           It 'should: return dummy converter' {
             Mock get-EnvironmentVariable -Verifiable `
               -ParameterFilter { $Variable -eq 'XATCH.CONVERTER' } {
               $testConverter;
             }
-            Convert-Audio -Source $sourcePath -Destination $destinationPath -From 'flac' -To 'wav';
+            Convert-Audio -Source $sourcePath -Destination $destinationPath -From 'flac' -To 'wav' -WhatIf;
           }
         } # and: XATCH.CONVERTER environment variable set
 
         Context 'and: XATCH.CONVERTER environment variable not set' {
           It 'should: return dummy converter' {
-            Convert-Audio -Source $sourcePath -Destination $destinationPath -From 'flac' -To 'wav';
+            Convert-Audio -Source $sourcePath -Destination $destinationPath -From 'flac' -To 'wav' -WhatIf;
           }
         } # and: XATCH.CONVERTER environment variable not set
 
@@ -194,7 +206,7 @@ InModuleScope Elizium.Xatch {
               -ParameterFilter { $Variable -eq 'XATCH.CONVERTER' } {
               $failedConverter;
             }
-            Convert-Audio -Source $sourcePath -Destination $destinationPath -From 'flac' -To 'wav';
+            Convert-Audio -Source $sourcePath -Destination $destinationPath -From 'flac' -To 'wav' -WhatIf;
           }
         }
       } # and: WhatIf set  
@@ -204,6 +216,7 @@ InModuleScope Elizium.Xatch {
 
 InModuleScope Elizium.Xatch {
   BeforeAll {
+    if ($IsWindows) {
     . .\Internal\edit-SubtractFirst.ps1
     . .\Internal\edit-TruncateExtension.ps1
     . .\Internal\get-Converter.ps1
@@ -212,6 +225,16 @@ InModuleScope Elizium.Xatch {
     . .\Internal\invoke-ConversionBatch.ps1
     . .\Internal\xld-converter.ps1
     . .\Public\Convert-Audio.ps1
+    } else {
+    . ./Internal/edit-SubtractFirst.ps1
+    . ./Internal/edit-TruncateExtension.ps1
+    . ./Internal/get-Converter.ps1
+    . ./Internal/get-EnvironmentVariable.ps1
+    . ./Internal/get-IsInstalled.ps1
+    . ./Internal/invoke-ConversionBatch.ps1
+    . ./Internal/xld-converter.ps1
+    . ./Public/Convert-Audio.ps1
+    }
 
     [string]$script:sourcePath = './Tests/Data/batch/Audio/MINIMAL/Richie Hawtin';
     [string]$script:destinationPath = 'TestDrive:/TEST/Audio/Richie Hawtin';
@@ -225,7 +248,7 @@ InModuleScope Elizium.Xatch {
     }
   }
 
-  Context 'System Integration' {
+  Context 'System Integration' -Skip {
     Context 'given: xld installed' {
       Context 'and WhatIf set' {
         Context 'and: XATCH.CONVERTER environment variable not set' {

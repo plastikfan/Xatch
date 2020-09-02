@@ -3,7 +3,11 @@ Describe 'get-IsInstalled' -Skip {
 
   InModuleScope Elizium.Xatch {
     BeforeAll {
-      # . ./Internal/get-IsInstalled.ps1;
+      # if ($IsWindows) {
+      #   . .\Internal\get-IsInstalled.ps1;
+      # } else {
+      #   . ./Internal/get-IsInstalled.ps1;
+      # }
 
       Get-Module Elizium.Xatch | Remove-Module
       Import-Module .\Output\Elizium.Xatch\Elizium.Xatch.psm1 `
