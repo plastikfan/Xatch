@@ -5,9 +5,15 @@ Describe 'invoke-ConversionBatch' {
     # Import-Module .\Output\Elizium.Xatch\Elizium.Xatch.psm1 `
     #   -ErrorAction 'stop' -DisableNameChecking
 
+    if ($IsWindows) {
+    . .\Internal\invoke-ConversionBatch.ps1;
+    . .\Internal\edit-TruncateExtension.ps1;
+    . .\Internal\edit-SubtractFirst.ps1;
+    } else {
     . ./Internal/invoke-ConversionBatch.ps1;
     . ./Internal/edit-TruncateExtension.ps1;
     . ./Internal/edit-SubtractFirst.ps1;
+    }
 
     [string]$script:sourcePath = './Tests/Data/batch/Audio';
     [string]$script:destinationPath = 'TestDrive:/TEST/Audio';

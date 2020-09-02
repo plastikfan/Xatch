@@ -1,9 +1,26 @@
 
 Describe 'get-Converter' {
   BeforeAll {
-    . .\Internal\get-EnvironmentVariable.ps1;
-    . .\Internal\get-IsInstalled;
-    . .\Internal\get-Converter.ps1;
+    if ($IsWindows) {
+      . .\Internal\edit-SubtractFirst.ps1
+      . .\Internal\edit-TruncateExtension.ps1
+      . .\Internal\get-Converter.ps1
+      . .\Internal\get-EnvironmentVariable.ps1
+      . .\Internal\get-IsInstalled.ps1
+      . .\Internal\invoke-ConversionBatch.ps1
+      . .\Internal\xld-converter.ps1
+      . .\Public\Convert-Audio.ps1
+    }
+    else {
+      . ./Internal/edit-SubtractFirst.ps1
+      . ./Internal/edit-TruncateExtension.ps1
+      . ./Internal/get-Converter.ps1
+      . ./Internal/get-EnvironmentVariable.ps1
+      . ./Internal/get-IsInstalled.ps1
+      . ./Internal/invoke-ConversionBatch.ps1
+      . ./Internal/xld-converter.ps1
+      . ./Public/Convert-Audio.ps1
+    }
 
     [scriptblock]$script:testConverter = {
       param(
@@ -21,8 +38,10 @@ Describe 'get-Converter' {
   }
 
   Context 'given: xld not installed' {
-    Mock -ParameterFilter { $Name -eq 'xld' } get-IsInstalled {
-      return $false;
+    BeforeEach {
+      Mock get-IsInstalled {
+        return $false;
+      }
     }
 
     Context 'and WhatIf not set' {
@@ -44,8 +63,10 @@ Describe 'get-Converter' {
           [System.Collections.Hashtable]$passThru = @{}
           [scriptblock]$converter = get-Converter -PassThru $passThru;
 
-          $converter.Invoke('blue-rose.flac', 'blue-rose.wav', 'wav') | Should -Be 0;
           $passThru['XATCH.CONVERTER.DUMMY'] | Should -BeTrue;
+          if (-not(Get-Command -Name 'xld' -ErrorAction SilentlyContinue)) {
+            $converter.Invoke('blue-rose.flac', 'blue-rose.wav', 'wav') | Should -Be 0;
+          }
         }
       } # and: XATCH.CONVERTER environment variable not set
     } # and WhatIf not set
@@ -57,6 +78,7 @@ Describe 'get-Converter' {
             -ParameterFilter { $Variable -eq 'XATCH.CONVERTER' } {
             $testConverter;
           }
+
           [System.Collections.Hashtable]$passThru = @{
             'WHAT-IF' = $true;
           }
@@ -82,8 +104,10 @@ Describe 'get-Converter' {
   } # given: xld not installed
 
   Context 'given: xld is installed' {
-    Mock -ParameterFilter { $Name -eq 'xld' } get-IsInstalled {
-      return $true;
+    BeforeAll {
+      Mock get-IsInstalled {
+        return $true;
+      }
     }
 
     Context 'and WhatIf not set' {
@@ -96,7 +120,9 @@ Describe 'get-Converter' {
           [System.Collections.Hashtable]$passThru = @{}
           [scriptblock]$converter = get-Converter -PassThru $passThru;
 
-          $converter.Invoke('blue-rose.flac', 'blue-rose.wav', 'wav') | Should -Be 909;
+          if (-not(Get-Command -Name 'xld' -ErrorAction 'SilentlyContinue')) {
+            $converter.Invoke('blue-rose.flac', 'blue-rose.wav', 'wav') | Should -Be 909;
+          }
         } # should: return environment converter
       } # and: XATCH.CONVERTER environment variable set
 
@@ -105,8 +131,10 @@ Describe 'get-Converter' {
           [System.Collections.Hashtable]$passThru = @{}
           [scriptblock]$converter = get-Converter -PassThru $passThru;
 
-          $converter.Invoke('blue-rose.flac', 'blue-rose.wav', 'wav') | Should -Be 0;
-          $passThru['XATCH.CONVERTER.DUMMY'] | Should -BeTrue;
+          $passThru['XATCH.CONVERTER.DUMMY'] | Should -BeNull;
+          if (-not(Get-Command -Name 'xld' -ErrorAction 'SilentlyContinue')) {
+            $converter.Invoke('blue-rose.flac', 'blue-rose.wav', 'wav') | Should -Be 0;
+          }
         }
       } # and: XATCH.CONVERTER environment variable not set
     } # and WhatIf not set
@@ -123,8 +151,8 @@ Describe 'get-Converter' {
           }
           [scriptblock]$converter = get-Converter -PassThru $passThru;
 
-          $converter.Invoke('blue-rose.flac', 'blue-rose.wav', 'wav') | Should -Be 0;
           $passThru['XATCH.CONVERTER.DUMMY'] | Should -BeTrue;
+          $converter.Invoke('blue-rose.flac', 'blue-rose.wav', 'wav') | Should -Be 0;
         }
       } # and: XATCH.CONVERTER environment variable set
 
