@@ -1,6 +1,6 @@
 
 function invoke-ConversionBatch {
-  [CmdletBinding(SupportsShouldProcess)]
+  [CmdletBinding()]
   [Alias('cva')]
   param
   (
@@ -53,7 +53,6 @@ function invoke-ConversionBatch {
     [string]$sourceName = $underscore.Name;
     [string]$sourceFullName = $underscore.FullName;
     [string]$toFormat = $passThru['XATCH.CONVERT.TO'];
-    [boolean]$skipExisting = $passThru.ContainsKey('XATCH.CONVERT.SKIP');
     [System.IO.DirectoryInfo]$destinationInfo = $passThru['LOOPZ.MIRROR.DESTINATION'];
     [string]$destinationAudioFilename = ((edit-TruncateExtension -path $sourceName) + '.' + $toFormat);
     [string]$destinationAudioFullname = Join-Path -Path $destinationInfo.FullName `
@@ -65,8 +64,8 @@ function invoke-ConversionBatch {
     [string]$state = 'Conversion Ok';
     [boolean]$whatIf = $passThru.ContainsKey('WHAT-IF') -and $passThru['WHAT-IF'];
 
-    if (Test-Path -Path $destinationAudioFilename) {
-      if ($skipExisting) {
+    if (Test-Path -Path $destinationAudioFullname) {
+      if ($Skip.ToBool()) {
         $skipped = $true;
       }
       else {
@@ -91,7 +90,7 @@ function invoke-ConversionBatch {
           }
           elseif ($passThru.ContainsKey('XATCH.CONVERTER.ENV')) {
             $state = 'ENV Conversion Ok'
-            $indicator = $whatIf ? '🤔' : ($overwrite ? '🥶' : '😎');
+            $indicator = $overwrite ? '🥶' : '😎';
             if ($whatIf) {
               $state = 'ENV WhatIf';
             }
@@ -100,7 +99,7 @@ function invoke-ConversionBatch {
             }
           }
           else {
-            $indicator = $whatIf ? '💗' : ($overwrite ? '💔' : '💖');
+            $indicator = $overwrite ? '💔' : '💖';
             if ($whatIf) {
               $state = 'WhatIf';
             }
@@ -113,7 +112,8 @@ function invoke-ConversionBatch {
           $indicator = '👿';
           $state = 'Conversion Failed';
         }
-      } catch {
+      }
+      catch {
         $indicator = '💀';
         $state = 'Conversion Failed';
       }
@@ -125,11 +125,12 @@ function invoke-ConversionBatch {
 
     $passThru['LOOPZ.WH-FOREACH-DECORATOR.MESSAGE'] = "   [{0}] {1}" -f $indicator, $state;
 
-    if (Test-Path -Path $destinationAudioFilename) {
-      [System.IO.FileInfo]$destinationInfo = Get-Item -Path $destinationAudioFilename;
+    if (Test-Path -Path $destinationAudioFullname) {
+      [System.IO.FileInfo]$destinationInfo = Get-Item -Path $destinationAudioFullname;
       # -not($skipped) being used as an affirmation
       #
-      $properties += , @('Size', $destinationInfo.Length, -not($skipped));
+      [string]$size = "{0:#.##}" -f ($destinationInfo.Length / 1000000);
+      $properties += , @('Size (MB)', $size, -not($skipped));
       $product = $destinationInfo;
     }
     else {
@@ -180,7 +181,10 @@ function invoke-ConversionBatch {
     $foreachAudioFilePassThru['LOOPZ.HEADER-BLOCK.LINE'] = $LoopzUI.SmallUnderscoreLine;
     $destinationBranch = $foreachAudioFilePassThru['LOOPZ.MIRROR.BRANCH-DESTINATION'];
     [string]$directorySeparator = [System.IO.Path]::DirectorySeparatorChar;
-    $foreachAudioFilePassThru['LOOPZ.HEADER-BLOCK.MESSAGE'] = "...$($directorySeparator)$($destinationBranch)";
+
+    $foreachAudioFilePassThru['LOOPZ.HEADER-BLOCK.MESSAGE'] = `
+      $destinationBranch.StartsWith($directorySeparator) ? "...$($destinationBranch)" : `
+      "...$($directorySeparator)$($destinationBranch)";
 
     $foreachAudioFilePassThru['LOOPZ.SUMMARY-BLOCK.LINE'] = $LoopzUI.SmallUnderscoreLine;
     $foreachAudioFilePassThru['LOOPZ.SUMMARY-BLOCK.MESSAGE'] = "   [🌀] Conversion Summary ($($destinationInfo.Name))";
