@@ -183,7 +183,7 @@ InModuleScope Elizium.Xatch {
         } # and: XATCH.CONVERTER environment variable not set
       } # and WhatIf not set
 
-      Context 'and: WhatIf set' -Tag 'Current' {
+      Context 'and: WhatIf set' {
         Context 'and: XATCH.CONVERTER environment variable set' {
           It 'should: return dummy converter' {
             Mock get-EnvironmentVariable -Verifiable `
