@@ -89,6 +89,7 @@ function Convert-Audio {
   [System.Collections.Hashtable]$generalTheme = Get-KrayolaTheme;
   [System.Collections.Hashtable]$passThru = @{
     'LOOPZ.KRAYOLA-THEME'     = $generalTheme;
+    'LOOPZ.SIGNALS'           = $(Get-Signals)
   };
 
   [System.Collections.Hashtable]$innerTheme = $generalTheme.Clone();

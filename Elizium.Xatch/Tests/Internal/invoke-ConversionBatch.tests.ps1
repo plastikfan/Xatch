@@ -6,13 +6,14 @@ Describe 'invoke-ConversionBatch' {
     #   -ErrorAction 'stop' -DisableNameChecking
 
     if ($IsWindows) {
-    . .\Internal\invoke-ConversionBatch.ps1;
-    . .\Internal\edit-TruncateExtension.ps1;
-    . .\Internal\edit-SubtractFirst.ps1;
-    } else {
-    . ./Internal/invoke-ConversionBatch.ps1;
-    . ./Internal/edit-TruncateExtension.ps1;
-    . ./Internal/edit-SubtractFirst.ps1;
+      . .\Internal\invoke-ConversionBatch.ps1;
+      . .\Internal\edit-TruncateExtension.ps1;
+      . .\Internal\edit-SubtractFirst.ps1;
+    }
+    else {
+      . ./Internal/invoke-ConversionBatch.ps1;
+      . ./Internal/edit-TruncateExtension.ps1;
+      . ./Internal/edit-SubtractFirst.ps1;
     }
 
     [string]$script:sourcePath = './Tests/Data/batch/Audio';
@@ -40,9 +41,10 @@ Describe 'invoke-ConversionBatch' {
   }
 
   Context 'given: blah' {
-    It 'should: ' {
+    It 'should: ' -Tag 'Current' {
       [System.Collections.Hashtable]$PassThru = @{
         'XATCH.CONVERT.CONVERTER' = $converter;
+        'LOOPZ.SIGNALS'           = $(Get-Signals)
         # 'WHAT-IF' = $true;
       }
 

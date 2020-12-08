@@ -60,8 +60,8 @@ function invoke-ConversionBatch {
 
     [boolean]$skipped = $false;
     [boolean]$overwrite = $false;
-    [string]$indicator = '➖';
-    [string]$state = 'Conversion Ok';
+    [string]$indicatorSignal = 'BAD-A';
+    [string]$signalLabel = 'Conversion Ok';
     [boolean]$whatIf = $passThru.ContainsKey('WHAT-IF') -and $passThru['WHAT-IF'];
 
     if (Test-Path -Path $destinationAudioFullname) {
@@ -81,49 +81,50 @@ function invoke-ConversionBatch {
         [scriptblock]$converter = $passThru['XATCH.CONVERT.CONVERTER'];
         $invokeResult = $converter.Invoke($sourceFullName, $destinationAudioFullname, $toFormat);
 
-        # https://emojicheatsheet.com/
-        #
         if ($invokeResult[0] -eq 0) {
           if ($passThru.ContainsKey('XATCH.CONVERTER.DUMMY')) {
-            $indicator = $whatIf ? '🙀' : ($overwrite ? '😼' : '😺');
-            $state = 'Dummy Ok';
+            $indicatorSignal = $whatIf ? 'WHAT-IF' : ($overwrite ? 'OVERWRITE-A' : 'OK-B');
+            $signalLabel = 'Dummy Ok';
           }
           elseif ($passThru.ContainsKey('XATCH.CONVERTER.ENV')) {
-            $state = 'ENV Conversion Ok'
-            $indicator = $overwrite ? '🥶' : '😎';
+            $signalLabel = 'ENV Conversion Ok'
+            $indicatorSignal = $overwrite ? 'OVERWRITE-C' : 'OK-A';
             if ($whatIf) {
-              $state = 'ENV WhatIf';
+              $signalLabel = 'ENV WhatIf';
             }
             elseif ($overwrite) {
-              $state = 'ENV Overwrite Ok';
+              $signalLabel = 'ENV Overwrite Ok';
             }
           }
           else {
-            $indicator = $overwrite ? '💔' : '💖';
+            $indicatorSignal = $overwrite ? 'OVERWRITE-B' : 'OK-C';
             if ($whatIf) {
-              $state = 'WhatIf';
+              $signalLabel = 'WhatIf';
             }
             elseif ($overwrite) {
-              $state = 'Overwrite Ok';
+              $signalLabel = 'Overwrite Ok';
             }
           }
         }
         else {
-          $indicator = '👿';
-          $state = 'Conversion Failed';
+          $indicatorSignal = 'FAILED-A';
+          $signalLabel = 'Conversion Failed';
         }
       }
       catch {
-        $indicator = '💀';
-        $state = 'Conversion Failed';
+        $indicatorSignal = 'FAILED-B';
+        $signalLabel = 'Exception';
       }
     }
     else {
-      $indicator = '🔆';
-      $state = 'Conversion Skipped';
+      $indicatorSignal = 'SKIPPED-A';
+      $signalLabel = 'Conversion Skipped';
     }
+    [System.Collections.Hashtable]$signals = $passThru['LOOPZ.SIGNALS'];
+    [string]$formattedSignal = Get-FormattedSignal -Name $indicatorSignal `
+      -Signals $signals -CustomLabel $signalLabel -Format "   [{0}] {1}";
 
-    $passThru['LOOPZ.WH-FOREACH-DECORATOR.MESSAGE'] = "   [{0}] {1}" -f $indicator, $state;
+    $passThru['LOOPZ.WH-FOREACH-DECORATOR.MESSAGE'] = $formattedSignal;
 
     if (Test-Path -Path $destinationAudioFullname) {
       [System.IO.FileInfo]$destinationInfo = Get-Item -Path $destinationAudioFullname;
@@ -173,11 +174,9 @@ function invoke-ConversionBatch {
     $destinationInfo = $_passThru['LOOPZ.MIRROR.DESTINATION'];
 
     $foreachAudioFilePassThru['LOOPZ.WH-FOREACH-DECORATOR.BLOCK'] = $doAudioFileConversion;
-    $foreachAudioFilePassThru['LOOPZ.WH-FOREACH-DECORATOR.MESSAGE'] = '   [➖] Converted file';
     $foreachAudioFilePassThru['LOOPZ.WH-FOREACH-DECORATOR.GET-RESULT'] = $getResult;
     $foreachAudioFilePassThru['LOOPZ.WH-FOREACH-DECORATOR.PRODUCT-LABEL'] = 'To';
 
-    $foreachAudioFilePassThru['LOOPZ.HEADER-BLOCK.CRUMB'] = '[🎯] ';
     $foreachAudioFilePassThru['LOOPZ.HEADER-BLOCK.LINE'] = $LoopzUI.SmallUnderscoreLine;
     $destinationBranch = $foreachAudioFilePassThru['LOOPZ.MIRROR.BRANCH-DESTINATION'];
     [string]$directorySeparator = [System.IO.Path]::DirectorySeparatorChar;
@@ -187,8 +186,6 @@ function invoke-ConversionBatch {
       "...$($directorySeparator)$($destinationBranch)";
 
     $foreachAudioFilePassThru['LOOPZ.SUMMARY-BLOCK.LINE'] = $LoopzUI.SmallUnderscoreLine;
-    $foreachAudioFilePassThru['LOOPZ.SUMMARY-BLOCK.MESSAGE'] = "   [🌀] Conversion Summary ($($destinationInfo.Name))";
-
     $foreachAudioFilePassThru.Remove('LOOPZ.FOREACH.INDEX');
     $foreachAudioFilePassThru.Remove('LOOPZ.SUMMARY-BLOCK.WIDE-ITEMS');
 
@@ -214,24 +211,40 @@ function invoke-ConversionBatch {
     $result;
   } # onSourceDirectory
 
+  [System.Collections.Hashtable]$signals = $PassThru['LOOPZ.SIGNALS'];
+  [PSCustomObject]$containers = @{
+    Wide  = [string[][]]@();
+    Props = [string[][]]@();
+  }
+
+  [string]$signalName = 'AUDIO';
+  [string]$message = Get-FormattedSignal -Name $signalName `
+    -Signals $signals -CustomLabel 'Audio Directory' -Format '   [{1}] {0}';
+
+  [string]$directoriesSummary = Get-FormattedSignal -Name 'DIRECTORY-A' `
+    -Signals $signals -CustomLabel 'Conversion Summary';
+
+  Select-SignalContainer -Containers $containers -Name 'SOURCE' -Signals $signals `
+    -Value $(Convert-Path -Path $Source) -CustomLabel 'Source' -Force 'Wide';
+
+  Select-SignalContainer -Containers $containers -Name 'DESTINATION' -Signals $signals `
+    -Value $(Convert-Path -Path $Destination) -CustomLabel 'Destination' -Force 'Wide';
+
   $PassThru['LOOPZ.WH-FOREACH-DECORATOR.BLOCK'] = $onSourceDirectory;
-  $PassThru['LOOPZ.WH-FOREACH-DECORATOR.MESSAGE'] = '   [📁] Audio Directory';
+  $PassThru['LOOPZ.WH-FOREACH-DECORATOR.MESSAGE'] = $message;
   $PassThru['LOOPZ.WH-FOREACH-DECORATOR.GET-RESULT'] = $getResult;
   $PassThru['LOOPZ.WH-FOREACH-DECORATOR.PRODUCT-LABEL'] = 'Album';
 
   $PassThru['XATCH.CONVERT.FROM'] = $From;
   $PassThru['XATCH.CONVERT.TO'] = $To;
 
-  $PassThru['LOOPZ.HEADER-BLOCK.CRUMB'] = '[🧿] ';
+  $PassThru['LOOPZ.HEADER-BLOCK.CRUMB-SIGNAL'] = 'CRUMB-C';
   $PassThru['LOOPZ.HEADER-BLOCK.LINE'] = $LoopzUI.EqualsLine;
   $PassThru['LOOPZ.HEADER-BLOCK.MESSAGE'] = "Convert from '$From' to '$To'";
 
   $PassThru['LOOPZ.SUMMARY-BLOCK.LINE'] = $LoopzUI.EqualsLine;
-  $PassThru['LOOPZ.SUMMARY-BLOCK.MESSAGE'] = '[💫] Directories Summary';
-  $PassThru['LOOPZ.SUMMARY-BLOCK.WIDE-ITEMS'] = @(
-    @('   [📁] Source', $(Convert-Path -Path $Source)),
-    @('   [📁] Destination', $(Convert-Path -Path $Destination))
-  );
+  $PassThru['LOOPZ.SUMMARY-BLOCK.MESSAGE'] = $directoriesSummary;
+  $PassThru['LOOPZ.SUMMARY-BLOCK.WIDE-ITEMS'] = $containers.Wide;
 
   $PassThru['LOOPZ.SUMMARY-BLOCK.PROPERTIES'] = @(@('From', $From), @('To', $To));
 
