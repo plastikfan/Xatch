@@ -40,8 +40,8 @@ Describe 'invoke-ConversionBatch' {
     }
   }
 
-  Context 'given: blah' {
-    It 'should: ' -Tag 'Current' {
+  Context 'given: Source tree containing audio' {
+    It 'should: run conversion batch' {
       [System.Collections.Hashtable]$PassThru = @{
         'XATCH.CONVERT.CONVERTER' = $converter;
         'LOOPZ.SIGNALS'           = $(Get-Signals)

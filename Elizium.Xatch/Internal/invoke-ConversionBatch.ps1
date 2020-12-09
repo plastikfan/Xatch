@@ -168,6 +168,7 @@ function invoke-ConversionBatch {
     )
 
     [string]$fromFormat = $_passThru['XATCH.CONVERT.FROM'];
+    [string]$toFormat = $_passThru['XATCH.CONVERT.TO'];
     [string]$filter = "*.{0}" -f $fromFormat;
 
     [System.Collections.Hashtable]$foreachAudioFilePassThru = $_passThru.Clone();
@@ -178,12 +179,12 @@ function invoke-ConversionBatch {
     $foreachAudioFilePassThru['LOOPZ.WH-FOREACH-DECORATOR.PRODUCT-LABEL'] = 'To';
 
     $foreachAudioFilePassThru['LOOPZ.HEADER-BLOCK.LINE'] = $LoopzUI.SmallUnderscoreLine;
-    $destinationBranch = $foreachAudioFilePassThru['LOOPZ.MIRROR.BRANCH-DESTINATION'];
-    [string]$directorySeparator = [System.IO.Path]::DirectorySeparatorChar;
+    [string]$destinationBranch = $foreachAudioFilePassThru['LOOPZ.MIRROR.BRANCH-DESTINATION'];
 
-    $foreachAudioFilePassThru['LOOPZ.HEADER-BLOCK.MESSAGE'] = `
-      $destinationBranch.StartsWith($directorySeparator) ? "...$($destinationBranch)" : `
-      "...$($directorySeparator)$($destinationBranch)";
+    [string]$directorySeparator = [System.IO.Path]::DirectorySeparatorChar;
+    $destinationBranch = $destinationBranch.StartsWith($directorySeparator) `
+      ? "...$($destinationBranch)" `
+      : "...$($directorySeparator)$($destinationBranch)";
 
     $foreachAudioFilePassThru['LOOPZ.SUMMARY-BLOCK.LINE'] = $LoopzUI.SmallUnderscoreLine;
     $foreachAudioFilePassThru.Remove('LOOPZ.FOREACH.INDEX');
@@ -195,6 +196,20 @@ function invoke-ConversionBatch {
       $foreachAudioFilePassThru['LOOPZ.KRAYOLA-THEME'] = $innerTheme;
     }
 
+    [PSCustomObject]$containers = @{
+      Wide = [string[][]]@();
+    }
+
+    Select-SignalContainer -Containers $containers -Name 'SOURCE' -Signals $signals `
+      -Value $($_sourceDirectory.FullName) -CustomLabel 'Source' -Force 'Wide';
+
+    Select-SignalContainer -Containers $containers -Name 'DESTINATION' -Signals $signals `
+      -Value $($destinationInfo.FullName) -CustomLabel 'Destination' -Force 'Wide'; # $destinationBranch
+
+    $_passThru['LOOPZ.SUMMARY-BLOCK.WIDE-ITEMS'] = $containers.Wide;
+    $_passThru['LOOPZ.HEADER-BLOCK.MESSAGE'] = `
+      "( $($destinationBranch) ) '$fromFormat' >>> '$toFormat'";
+
     Get-ChildItem -Path $_sourceDirectory.FullName -File -Filter $filter | `
       Invoke-ForeachFsItem -File -Block $LoopzHelpers.WhItemDecoratorBlock -PassThru $foreachAudioFilePassThru `
       -Header $LoopzHelpers.DefaultHeaderBlock -Summary $LoopzHelpers.SimpleSummaryBlock;
@@ -203,7 +218,8 @@ function invoke-ConversionBatch {
       Product = $destinationInfo;
     }
 
-    if ($foreachAudioFilePassThru.ContainsKey('LOOPZ.FOREACH.COUNT') -and ($foreachAudioFilePassThru['LOOPZ.FOREACH.COUNT'] -gt 0)) {
+    if ($foreachAudioFilePassThru.ContainsKey('LOOPZ.FOREACH.COUNT') -and
+      ($foreachAudioFilePassThru['LOOPZ.FOREACH.COUNT'] -gt 0)) {
       $result | Add-Member -MemberType NoteProperty -Name 'Affirm' -Value $true;
       $result | Add-Member -MemberType NoteProperty -Name 'Trigger' -Value $true;
     }
@@ -212,23 +228,12 @@ function invoke-ConversionBatch {
   } # onSourceDirectory
 
   [System.Collections.Hashtable]$signals = $PassThru['LOOPZ.SIGNALS'];
-  [PSCustomObject]$containers = @{
-    Wide  = [string[][]]@();
-    Props = [string[][]]@();
-  }
-
   [string]$signalName = 'AUDIO';
   [string]$message = Get-FormattedSignal -Name $signalName `
     -Signals $signals -CustomLabel 'Audio Directory' -Format '   [{1}] {0}';
 
-  [string]$directoriesSummary = Get-FormattedSignal -Name 'DIRECTORY-A' `
+  [string]$directoriesSummary = Get-FormattedSignal -Name 'SUMMARY-A' `
     -Signals $signals -CustomLabel 'Conversion Summary';
-
-  Select-SignalContainer -Containers $containers -Name 'SOURCE' -Signals $signals `
-    -Value $(Convert-Path -Path $Source) -CustomLabel 'Source' -Force 'Wide';
-
-  Select-SignalContainer -Containers $containers -Name 'DESTINATION' -Signals $signals `
-    -Value $(Convert-Path -Path $Destination) -CustomLabel 'Destination' -Force 'Wide';
 
   $PassThru['LOOPZ.WH-FOREACH-DECORATOR.BLOCK'] = $onSourceDirectory;
   $PassThru['LOOPZ.WH-FOREACH-DECORATOR.MESSAGE'] = $message;
@@ -240,12 +245,9 @@ function invoke-ConversionBatch {
 
   $PassThru['LOOPZ.HEADER-BLOCK.CRUMB-SIGNAL'] = 'CRUMB-C';
   $PassThru['LOOPZ.HEADER-BLOCK.LINE'] = $LoopzUI.EqualsLine;
-  $PassThru['LOOPZ.HEADER-BLOCK.MESSAGE'] = "Convert from '$From' to '$To'";
 
   $PassThru['LOOPZ.SUMMARY-BLOCK.LINE'] = $LoopzUI.EqualsLine;
   $PassThru['LOOPZ.SUMMARY-BLOCK.MESSAGE'] = $directoriesSummary;
-  $PassThru['LOOPZ.SUMMARY-BLOCK.WIDE-ITEMS'] = $containers.Wide;
-
   $PassThru['LOOPZ.SUMMARY-BLOCK.PROPERTIES'] = @(@('From', $From), @('To', $To));
 
   if ($Concise.ToBool()) {
