@@ -206,6 +206,22 @@ function invoke-ConversionBatch {
     Select-SignalContainer -Containers $containers -Name 'DESTINATION' -Signals $signals `
       -Value $($destinationInfo.FullName) -CustomLabel 'Destination' -Force 'Wide'; # $destinationBranch
 
+    if ($foreachAudioFilePassThru.ContainsKey('LOOPZ.MIRROR.COPIED-FILES.COUNT')) {
+      [int]$filesCount = $foreachAudioFilePassThru['LOOPZ.MIRROR.COPIED-FILES.COUNT'];
+
+      if ($filesCount -gt 0) {
+        Select-SignalContainer -Containers $containers -Name 'COPY-B' -Signals $signals `
+          -Value $foreachAudioFilePassThru['LOOPZ.MIRROR.COPIED-FILES.COUNT'] `
+          -CustomLabel 'Copied' -Force 'Wide';
+
+        if ($foreachAudioFilePassThru.ContainsKey('LOOPZ.MIRROR.COPIED-FILES.INCLUDES')) {
+          Select-SignalContainer -Containers $containers -Name 'INCLUDE' -Signals $signals `
+            -Value $foreachAudioFilePassThru['LOOPZ.MIRROR.COPIED-FILES.INCLUDES'] `
+            -CustomLabel 'Copied File Types' -Force 'Wide';
+        }
+      }
+    }
+
     $_passThru['LOOPZ.SUMMARY-BLOCK.WIDE-ITEMS'] = $containers.Wide;
     $_passThru['LOOPZ.HEADER-BLOCK.MESSAGE'] = `
       "( $($destinationBranch) ) '$fromFormat' >>> '$toFormat'";
