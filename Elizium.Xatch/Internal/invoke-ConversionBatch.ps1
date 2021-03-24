@@ -21,7 +21,7 @@ function invoke-ConversionBatch {
     [string[]]$CopyFiles = @('jpg', 'jpeg', 'txt'),
 
     [Parameter()]
-    [System.Collections.Hashtable]$PassThru = @{},
+    [System.Collections.Hashtable]$Exchange = @{},
 
     [switch]$Skip,
     [switch]$Concise
@@ -44,7 +44,7 @@ function invoke-ConversionBatch {
       [int]$index,
 
       [Parameter(Mandatory)]
-      [System.Collections.Hashtable]$passThru,
+      [System.Collections.Hashtable]$exchange,
 
       [Parameter(Mandatory)]
       [boolean]$trigger
@@ -52,8 +52,8 @@ function invoke-ConversionBatch {
 
     [string]$sourceName = $underscore.Name;
     [string]$sourceFullName = $underscore.FullName;
-    [string]$toFormat = $passThru['XATCH.CONVERT.TO'];
-    [System.IO.DirectoryInfo]$destinationInfo = $passThru['LOOPZ.MIRROR.DESTINATION'];
+    [string]$toFormat = $exchange['XATCH.CONVERT.TO'];
+    [System.IO.DirectoryInfo]$destinationInfo = $exchange['LOOPZ.MIRROR.DESTINATION'];
     [string]$destinationAudioFilename = ((edit-TruncateExtension -path $sourceName) + '.' + $toFormat);
     [string]$destinationAudioFullname = Join-Path -Path $destinationInfo.FullName `
       -ChildPath $destinationAudioFilename;
@@ -62,7 +62,7 @@ function invoke-ConversionBatch {
     [boolean]$overwrite = $false;
     [string]$indicatorSignal = 'BAD-A';
     [string]$signalLabel = 'Conversion Ok';
-    [boolean]$whatIf = $passThru.ContainsKey('WHAT-IF') -and $passThru['WHAT-IF'];
+    [boolean]$whatIf = $exchange.ContainsKey('WHAT-IF') -and $exchange['WHAT-IF'];
 
     if (Test-Path -Path $destinationAudioFullname) {
       if ($Skip.ToBool()) {
@@ -78,15 +78,15 @@ function invoke-ConversionBatch {
 
     if (-not($skipped)) {
       try {
-        [scriptblock]$converter = $passThru['XATCH.CONVERT.CONVERTER'];
+        [scriptblock]$converter = $exchange['XATCH.CONVERT.CONVERTER'];
         $invokeResult = $converter.Invoke($sourceFullName, $destinationAudioFullname, $toFormat);
 
         if ($invokeResult[0] -eq 0) {
-          if ($passThru.ContainsKey('XATCH.CONVERTER.DUMMY')) {
+          if ($exchange.ContainsKey('XATCH.CONVERTER.DUMMY')) {
             $indicatorSignal = $whatIf ? 'WHAT-IF' : ($overwrite ? 'OVERWRITE-A' : 'OK-B');
             $signalLabel = 'Dummy Ok';
           }
-          elseif ($passThru.ContainsKey('XATCH.CONVERTER.ENV')) {
+          elseif ($exchange.ContainsKey('XATCH.CONVERTER.ENV')) {
             $signalLabel = 'ENV Conversion Ok'
             $indicatorSignal = $overwrite ? 'OVERWRITE-C' : 'OK-A';
             if ($whatIf) {
@@ -120,11 +120,11 @@ function invoke-ConversionBatch {
       $indicatorSignal = 'SKIPPED-A';
       $signalLabel = 'Conversion Skipped';
     }
-    [System.Collections.Hashtable]$signals = $passThru['LOOPZ.SIGNALS'];
+    [System.Collections.Hashtable]$signals = $exchange['LOOPZ.SIGNALS'];
     [string]$formattedSignal = Get-FormattedSignal -Name $indicatorSignal `
       -Signals $signals -CustomLabel $signalLabel -Format "   [{0}] {1}";
 
-    $passThru['LOOPZ.WH-FOREACH-DECORATOR.MESSAGE'] = $formattedSignal;
+    $exchange['LOOPZ.WH-FOREACH-DECORATOR.MESSAGE'] = $formattedSignal;
 
     if (Test-Path -Path $destinationAudioFullname) {
       [System.IO.FileInfo]$destinationInfo = Get-Item -Path $destinationAudioFullname;
@@ -161,39 +161,39 @@ function invoke-ConversionBatch {
       [int]$_index,
 
       [Parameter(Mandatory)]
-      [System.Collections.Hashtable]$_passThru,
+      [System.Collections.Hashtable]$_exchange,
 
       [Parameter(Mandatory)]
       [boolean]$_trigger
     )
 
-    [string]$fromFormat = $_passThru['XATCH.CONVERT.FROM'];
-    [string]$toFormat = $_passThru['XATCH.CONVERT.TO'];
+    [string]$fromFormat = $_exchange['XATCH.CONVERT.FROM'];
+    [string]$toFormat = $_exchange['XATCH.CONVERT.TO'];
     [string]$filter = "*.{0}" -f $fromFormat;
 
-    [System.Collections.Hashtable]$foreachAudioFilePassThru = $_passThru.Clone();
-    $destinationInfo = $_passThru['LOOPZ.MIRROR.DESTINATION'];
+    [System.Collections.Hashtable]$foreachAudioFileExchange = $_exchange.Clone();
+    $destinationInfo = $_exchange['LOOPZ.MIRROR.DESTINATION'];
 
-    $foreachAudioFilePassThru['LOOPZ.WH-FOREACH-DECORATOR.BLOCK'] = $doAudioFileConversion;
-    $foreachAudioFilePassThru['LOOPZ.WH-FOREACH-DECORATOR.GET-RESULT'] = $getResult;
-    $foreachAudioFilePassThru['LOOPZ.WH-FOREACH-DECORATOR.PRODUCT-LABEL'] = 'To';
+    $foreachAudioFileExchange['LOOPZ.WH-FOREACH-DECORATOR.BLOCK'] = $doAudioFileConversion;
+    $foreachAudioFileExchange['LOOPZ.WH-FOREACH-DECORATOR.GET-RESULT'] = $getResult;
+    $foreachAudioFileExchange['LOOPZ.WH-FOREACH-DECORATOR.PRODUCT-LABEL'] = 'To';
 
-    $foreachAudioFilePassThru['LOOPZ.HEADER-BLOCK.LINE'] = $LoopzUI.SmallUnderscoreLine;
-    [string]$destinationBranch = $foreachAudioFilePassThru['LOOPZ.MIRROR.BRANCH-DESTINATION'];
+    $foreachAudioFileExchange['LOOPZ.HEADER-BLOCK.LINE'] = $LoopzUI.SmallUnderscoreLine;
+    [string]$destinationBranch = $foreachAudioFileExchange['LOOPZ.MIRROR.BRANCH-DESTINATION'];
 
     [string]$directorySeparator = [System.IO.Path]::DirectorySeparatorChar;
     $destinationBranch = $destinationBranch.StartsWith($directorySeparator) `
       ? "...$($destinationBranch)" `
       : "...$($directorySeparator)$($destinationBranch)";
 
-    $foreachAudioFilePassThru['LOOPZ.SUMMARY-BLOCK.LINE'] = $LoopzUI.SmallUnderscoreLine;
-    $foreachAudioFilePassThru.Remove('LOOPZ.FOREACH.INDEX');
-    $foreachAudioFilePassThru.Remove('LOOPZ.SUMMARY-BLOCK.WIDE-ITEMS');
+    $foreachAudioFileExchange['LOOPZ.SUMMARY-BLOCK.LINE'] = $LoopzUI.SmallUnderscoreLine;
+    $foreachAudioFileExchange.Remove('LOOPZ.FOREACH.INDEX');
+    $foreachAudioFileExchange.Remove('LOOPZ.SUMMARY-BLOCK.WIDE-ITEMS');
 
-    [System.Collections.Hashtable]$innerTheme = $foreachAudioFilePassThru['XATCH.INNER-KRAYOLA-THEME'];
+    [System.Collections.Hashtable]$innerTheme = $foreachAudioFileExchange['XATCH.INNER-KRAYOLA-THEME'];
 
     if ($innerTheme) {
-      $foreachAudioFilePassThru['LOOPZ.KRAYOLA-THEME'] = $innerTheme;
+      $foreachAudioFileExchange['LOOPZ.KRAYOLA-THEME'] = $innerTheme;
     }
 
     [PSCustomObject]$containers = @{
@@ -206,36 +206,36 @@ function invoke-ConversionBatch {
     Select-SignalContainer -Containers $containers -Name 'DESTINATION' -Signals $signals `
       -Value $($destinationInfo.FullName) -CustomLabel 'Destination' -Force 'Wide'; # $destinationBranch
 
-    if ($foreachAudioFilePassThru.ContainsKey('LOOPZ.MIRROR.COPIED-FILES.COUNT')) {
-      [int]$filesCount = $foreachAudioFilePassThru['LOOPZ.MIRROR.COPIED-FILES.COUNT'];
+    if ($foreachAudioFileExchange.ContainsKey('LOOPZ.MIRROR.COPIED-FILES.COUNT')) {
+      [int]$filesCount = $foreachAudioFileExchange['LOOPZ.MIRROR.COPIED-FILES.COUNT'];
 
       if ($filesCount -gt 0) {
         Select-SignalContainer -Containers $containers -Name 'COPY-B' -Signals $signals `
-          -Value $foreachAudioFilePassThru['LOOPZ.MIRROR.COPIED-FILES.COUNT'] `
+          -Value $foreachAudioFileExchange['LOOPZ.MIRROR.COPIED-FILES.COUNT'] `
           -CustomLabel 'Copied' -Force 'Wide';
 
-        if ($foreachAudioFilePassThru.ContainsKey('LOOPZ.MIRROR.COPIED-FILES.INCLUDES')) {
+        if ($foreachAudioFileExchange.ContainsKey('LOOPZ.MIRROR.COPIED-FILES.INCLUDES')) {
           Select-SignalContainer -Containers $containers -Name 'INCLUDE' -Signals $signals `
-            -Value $foreachAudioFilePassThru['LOOPZ.MIRROR.COPIED-FILES.INCLUDES'] `
+            -Value $foreachAudioFileExchange['LOOPZ.MIRROR.COPIED-FILES.INCLUDES'] `
             -CustomLabel 'Copied File Types' -Force 'Wide';
         }
       }
     }
 
-    $_passThru['LOOPZ.SUMMARY-BLOCK.WIDE-ITEMS'] = $containers.Wide;
-    $_passThru['LOOPZ.HEADER-BLOCK.MESSAGE'] = `
+    $_exchange['LOOPZ.SUMMARY-BLOCK.WIDE-ITEMS'] = $containers.Wide;
+    $_exchange['LOOPZ.HEADER-BLOCK.MESSAGE'] = `
       "( $($destinationBranch) ) '$fromFormat' >>> '$toFormat'";
 
     Get-ChildItem -Path $_sourceDirectory.FullName -File -Filter $filter | `
-      Invoke-ForeachFsItem -File -Block $LoopzHelpers.WhItemDecoratorBlock -PassThru $foreachAudioFilePassThru `
+      Invoke-ForeachFsItem -File -Block $LoopzHelpers.WhItemDecoratorBlock -Exchange $foreachAudioFileExchange `
       -Header $LoopzHelpers.DefaultHeaderBlock -Summary $LoopzHelpers.SimpleSummaryBlock;
 
     [PSCustomObject]$result = [PSCustomObject]@{
       Product = $destinationInfo;
     }
 
-    if ($foreachAudioFilePassThru.ContainsKey('LOOPZ.FOREACH.COUNT') -and
-      ($foreachAudioFilePassThru['LOOPZ.FOREACH.COUNT'] -gt 0)) {
+    if ($foreachAudioFileExchange.ContainsKey('LOOPZ.FOREACH.COUNT') -and
+      ($foreachAudioFileExchange['LOOPZ.FOREACH.COUNT'] -gt 0)) {
       $result | Add-Member -MemberType NoteProperty -Name 'Affirm' -Value $true;
       $result | Add-Member -MemberType NoteProperty -Name 'Trigger' -Value $true;
     }
@@ -243,7 +243,7 @@ function invoke-ConversionBatch {
     $result;
   } # onSourceDirectory
 
-  [System.Collections.Hashtable]$signals = $PassThru['LOOPZ.SIGNALS'];
+  [System.Collections.Hashtable]$signals = $Exchange['LOOPZ.SIGNALS'];
   [string]$signalName = 'AUDIO';
   [string]$message = Get-FormattedSignal -Name $signalName `
     -Signals $signals -CustomLabel 'Audio Directory' -Format '   [{1}] {0}';
@@ -251,29 +251,29 @@ function invoke-ConversionBatch {
   [string]$directoriesSummary = Get-FormattedSignal -Name 'SUMMARY-A' `
     -Signals $signals -CustomLabel 'Conversion Summary';
 
-  $PassThru['LOOPZ.WH-FOREACH-DECORATOR.BLOCK'] = $onSourceDirectory;
-  $PassThru['LOOPZ.WH-FOREACH-DECORATOR.MESSAGE'] = $message;
-  $PassThru['LOOPZ.WH-FOREACH-DECORATOR.GET-RESULT'] = $getResult;
-  $PassThru['LOOPZ.WH-FOREACH-DECORATOR.PRODUCT-LABEL'] = 'Album';
+  $Exchange['LOOPZ.WH-FOREACH-DECORATOR.BLOCK'] = $onSourceDirectory;
+  $Exchange['LOOPZ.WH-FOREACH-DECORATOR.MESSAGE'] = $message;
+  $Exchange['LOOPZ.WH-FOREACH-DECORATOR.GET-RESULT'] = $getResult;
+  $Exchange['LOOPZ.WH-FOREACH-DECORATOR.PRODUCT-LABEL'] = 'Album';
 
-  $PassThru['XATCH.CONVERT.FROM'] = $From;
-  $PassThru['XATCH.CONVERT.TO'] = $To;
+  $Exchange['XATCH.CONVERT.FROM'] = $From;
+  $Exchange['XATCH.CONVERT.TO'] = $To;
 
-  $PassThru['LOOPZ.HEADER-BLOCK.CRUMB-SIGNAL'] = 'CRUMB-C';
-  $PassThru['LOOPZ.HEADER-BLOCK.LINE'] = $LoopzUI.EqualsLine;
+  $Exchange['LOOPZ.HEADER-BLOCK.CRUMB-SIGNAL'] = 'CRUMB-C';
+  $Exchange['LOOPZ.HEADER-BLOCK.LINE'] = $LoopzUI.EqualsLine;
 
-  $PassThru['LOOPZ.SUMMARY-BLOCK.LINE'] = $LoopzUI.EqualsLine;
-  $PassThru['LOOPZ.SUMMARY-BLOCK.MESSAGE'] = $directoriesSummary;
-  $PassThru['LOOPZ.SUMMARY-BLOCK.PROPERTIES'] = @(@('From', $From), @('To', $To));
+  $Exchange['LOOPZ.SUMMARY-BLOCK.LINE'] = $LoopzUI.EqualsLine;
+  $Exchange['LOOPZ.SUMMARY-BLOCK.MESSAGE'] = $directoriesSummary;
+  $Exchange['LOOPZ.SUMMARY-BLOCK.PROPERTIES'] = @(@('From', $From), @('To', $To));
 
   if ($Concise.ToBool()) {
-    $PassThru['LOOPZ.WH-FOREACH-DECORATOR.IF-TRIGGERED'] = $true;
+    $Exchange['LOOPZ.WH-FOREACH-DECORATOR.IF-TRIGGERED'] = $true;
   }
 
-  [boolean]$whatIf = $PassThru.ContainsKey('WHAT-IF') -and $PassThru['WHAT-IF'];
+  [boolean]$whatIf = $Exchange.ContainsKey('WHAT-IF') -and $Exchange['WHAT-IF'];
 
   $null = Invoke-MirrorDirectoryTree -Path $Source -DestinationPath $Destination `
     -CreateDirs -CopyFiles -FileIncludes $CopyFiles -FileExcludes @($From, $To) `
-    -Block $LoopzHelpers.WhItemDecoratorBlock -PassThru $PassThru `
-    -Header $LoopzHelpers.DefaultHeaderBlock -Summary $LoopzHelpers.SimpleSummaryBlock -WhatIf:$whatIf;
+    -Block $LoopzHelpers.WhItemDecoratorBlock -Exchange $Exchange `
+    -Header $LoopzHelpers.HeaderBlock -Summary $LoopzHelpers.SummaryBlock -WhatIf:$whatIf;
 }

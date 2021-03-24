@@ -51,8 +51,8 @@ Describe 'get-Converter' {
             -ParameterFilter { $Variable -eq 'XATCH.CONVERTER' } {
             $testConverter;
           }
-          [System.Collections.Hashtable]$passThru = @{}
-          [scriptblock]$converter = get-Converter -PassThru $passThru;
+          [System.Collections.Hashtable]$exchange = @{}
+          [scriptblock]$converter = get-Converter -Exchange $exchange;
 
           $converter.Invoke('blue-rose.flac', 'blue-rose.wav', 'wav') | Should -Be 909;
         }
@@ -60,10 +60,10 @@ Describe 'get-Converter' {
 
       Context 'and: XATCH.CONVERTER environment variable not set' {
         It 'should: return dummy converter' {
-          [System.Collections.Hashtable]$passThru = @{}
-          [scriptblock]$converter = get-Converter -PassThru $passThru;
+          [System.Collections.Hashtable]$exchange = @{}
+          [scriptblock]$converter = get-Converter -Exchange $exchange;
 
-          $passThru['XATCH.CONVERTER.DUMMY'] | Should -BeTrue;
+          $exchange['XATCH.CONVERTER.DUMMY'] | Should -BeTrue;
           if (-not(Get-Command -Name 'xld' -ErrorAction SilentlyContinue)) {
             $converter.Invoke('blue-rose.flac', 'blue-rose.wav', 'wav') | Should -Be 0;
           }
@@ -79,25 +79,25 @@ Describe 'get-Converter' {
             $testConverter;
           }
 
-          [System.Collections.Hashtable]$passThru = @{
+          [System.Collections.Hashtable]$exchange = @{
             'WHAT-IF' = $true;
           }
-          [scriptblock]$converter = get-Converter -PassThru $passThru;
+          [scriptblock]$converter = get-Converter -Exchange $exchange;
 
           $converter.Invoke('blue-rose.flac', 'blue-rose.wav', 'wav') | Should -Be 0;
-          $passThru['XATCH.CONVERTER.DUMMY'] | Should -BeTrue;
+          $exchange['XATCH.CONVERTER.DUMMY'] | Should -BeTrue;
         }
       } # and: XATCH.CONVERTER environment variable set
 
       Context 'and: XATCH.CONVERTER environment variable not set' {
         It 'should: return dummy converter' {
-          [System.Collections.Hashtable]$passThru = @{
+          [System.Collections.Hashtable]$exchange = @{
             'WHAT-IF' = $true;
           }
-          [scriptblock]$converter = get-Converter -PassThru $passThru;
+          [scriptblock]$converter = get-Converter -Exchange $exchange;
 
           $converter.Invoke('blue-rose.flac', 'blue-rose.wav', 'wav') | Should -Be 0;
-          $passThru['XATCH.CONVERTER.DUMMY'] | Should -BeTrue;
+          $exchange['XATCH.CONVERTER.DUMMY'] | Should -BeTrue;
         }
       } # and: XATCH.CONVERTER environment variable not set
     } # and: WhatIf set
@@ -117,8 +117,8 @@ Describe 'get-Converter' {
             -ParameterFilter { $Variable -eq 'XATCH.CONVERTER' } {
             $testConverter;
           }
-          [System.Collections.Hashtable]$passThru = @{}
-          [scriptblock]$converter = get-Converter -PassThru $passThru;
+          [System.Collections.Hashtable]$exchange = @{}
+          [scriptblock]$converter = get-Converter -Exchange $exchange;
 
           if (-not(Get-Command -Name 'xld' -ErrorAction 'SilentlyContinue')) {
             $converter.Invoke('blue-rose.flac', 'blue-rose.wav', 'wav') | Should -Be 909;
@@ -134,25 +134,25 @@ Describe 'get-Converter' {
             -ParameterFilter { $Variable -eq 'XATCH.CONVERTER' } {
             $testConverter;
           }
-          [System.Collections.Hashtable]$passThru = @{
+          [System.Collections.Hashtable]$exchange = @{
             'WHAT-IF' = $true;
           }
-          [scriptblock]$converter = get-Converter -PassThru $passThru;
+          [scriptblock]$converter = get-Converter -Exchange $exchange;
 
-          $passThru['XATCH.CONVERTER.DUMMY'] | Should -BeTrue;
+          $exchange['XATCH.CONVERTER.DUMMY'] | Should -BeTrue;
           $converter.Invoke('blue-rose.flac', 'blue-rose.wav', 'wav') | Should -Be 0;
         }
       } # and: XATCH.CONVERTER environment variable set
 
       Context 'and: XATCH.CONVERTER environment variable not set' {
         It 'should: return dummy converter' {
-          [System.Collections.Hashtable]$passThru = @{
+          [System.Collections.Hashtable]$exchange = @{
             'WHAT-IF' = $true;
           }
-          [scriptblock]$converter = get-Converter -PassThru $passThru;
+          [scriptblock]$converter = get-Converter -Exchange $exchange;
 
           $converter.Invoke('blue-rose.flac', 'blue-rose.wav', 'wav') | Should -Be 0;
-          $passThru['XATCH.CONVERTER.DUMMY'] | Should -BeTrue;
+          $exchange['XATCH.CONVERTER.DUMMY'] | Should -BeTrue;
         }
       } # and: XATCH.CONVERTER environment variable not set
     } # and: WhatIf set

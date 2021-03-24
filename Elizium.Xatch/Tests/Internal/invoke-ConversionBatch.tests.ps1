@@ -41,16 +41,16 @@ Describe 'invoke-ConversionBatch' {
   }
 
   Context 'given: Source tree containing audio' {
-    It 'should: run conversion batch' {
-      [System.Collections.Hashtable]$PassThru = @{
+    It 'should: run conversion batch' -Tag 'Current' {
+      [System.Collections.Hashtable]$Exchange = @{
         'XATCH.CONVERT.CONVERTER' = $converter;
         'LOOPZ.SIGNALS'           = $(Get-Signals)
         # 'WHAT-IF' = $true;
       }
 
       [System.Collections.Hashtable]$generalTheme = Get-KrayolaTheme;
-      $passThru['LOOPZ.KRAYOLA-THEME'] = $generalTheme;
-      # $passThru['LOOPZ.WH-FOREACH-DECORATOR.IF-TRIGGERED'] = $true;
+      $exchange['LOOPZ.KRAYOLA-THEME'] = $generalTheme;
+      # $exchange['LOOPZ.WH-FOREACH-DECORATOR.IF-TRIGGERED'] = $true;
 
       [System.Collections.Hashtable]$innerTheme = $generalTheme.Clone();
       $innerTheme['FORMAT'] = '"<%KEY%>" -> "<%VALUE%>"';
@@ -62,10 +62,10 @@ Describe 'invoke-ConversionBatch' {
       $innerTheme['OPEN'] = '(';
       $innerTheme['CLOSE'] = ')';
 
-      $PassThru['XATCH.INNER-KRAYOLA-THEME'] = $innerTheme;
+      $Exchange['XATCH.INNER-KRAYOLA-THEME'] = $innerTheme;
 
       invoke-ConversionBatch -Source $sourcePath -Destination $destinationPath `
-        -From 'flac' -To 'wav' -PassThru $PassThru;
+        -From 'flac' -To 'wav' -Exchange $Exchange;
     }
   }
 }
